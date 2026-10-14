@@ -1,0 +1,23 @@
+{
+  "channels": [
+    {
+      "category": "Community",
+      "source": "general",
+      "target": "general"
+    },
+    {
+      "category": "Community",
+      "source": "announcements",
+      "target": "announcements"
+    },
+    {
+      "category": "Staff",
+      "source": "shift-swap",
+      "target": "shift-swap"
+    }
+  ],
+  "migrate_channels": true,
+  "migrate_roles": true,
+  "source_guild": "PASTE_SOURCE_GUILD_ID",
+  "target_guild": "PASTE_TARGET_GUILD_ID"
+}

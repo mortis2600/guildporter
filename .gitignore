@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.guildporter-checkpoint.json
+.guildporter-role-mapping.json
+.env
+.venv/
+venv/
