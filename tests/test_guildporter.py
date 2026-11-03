@@ -151,7 +151,7 @@ def test_timestamp_header_utc():
         "timestamp": "2026-11-03T02:22:41.123456+00:00",
         "content": "availability?",
     }
-    assert timestamp_header(message, "UTC") == "[2026-11-03T02:22:41+00:00] khrysteenah"
+    assert timestamp_header(message, "UTC") == "[03-11-26 02:22:41]"
 
 
 def test_timestamp_header_converts_timezone():
@@ -163,8 +163,9 @@ def test_timestamp_header_converts_timezone():
         "timestamp": "2026-11-03T02:22:41+00:00",
         "content": "availability?",
     }
-    # November in Chicago is CST (UTC-6); nick wins over username.
-    assert timestamp_header(message, "America/Chicago") == "[2026-11-02T20:22:41-06:00] Christina"
+    # November in Chicago is CST (UTC-6). No author name in the header:
+    # the webhook already posts under the author's name.
+    assert timestamp_header(message, "America/Chicago") == "[02-11-26 20:22:41]"
 
 
 def test_timestamp_header_missing_timestamp():
@@ -180,7 +181,7 @@ def test_build_payload_with_timestamp_header():
         "content": "hello",
     }
     _, content = build_payload(message, timestamp_tz="UTC")
-    assert content == "[2026-11-03T02:22:41+00:00] khrysteenah\nhello"
+    assert content == "[03-11-26 02:22:41]\nhello"
 
 
 def test_build_payload_timestamp_header_on_empty_content():
@@ -191,7 +192,7 @@ def test_build_payload_timestamp_header_on_empty_content():
         "attachments": [{"filename": "weekly_schedule.png"}],
     }
     _, content = build_payload(message, timestamp_tz="UTC")
-    assert content == "[2026-11-03T02:22:41+00:00] khrysteenah"
+    assert content == "[03-11-26 02:22:41]"
 
 
 def test_build_payload_default_has_no_header():

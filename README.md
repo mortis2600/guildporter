@@ -28,8 +28,9 @@ limits on any migration tool, and guildporter is honest about them:
 - **Timestamps are not preserved.** Discord stamps creation time when a
   message is posted. Messages are posted oldest-first, so order is correct,
   but every message will show today's date. Mitigation: `--timestamp-header`
-  prepends an ISO 8601 header line with the original timestamp and author
-  name to each copied message, so the true date stays visible in the text.
+  prepends a header line with the original timestamp
+  (`[DD-MM-YY HH:MM:SS]`) to each copied message, so the true date stays
+  visible in the text.
 - **Replies can't be recreated.** Cross-guild reply references are invalid,
   so replies post as standalone messages.
 - **Reactions are dropped.** There is no API to re-apply someone else's
@@ -155,9 +156,10 @@ guild-migrate --config mapping.json [--token TOKEN] [--vault] [--dry-run]
   messages since the last run.
 - `--skip-bot-role`: name of the bot's own auto-created role, excluded from
   role mirroring.
-- `--timestamp-header`: prepend an ISO 8601 header line with each message's
-  original timestamp and author name (e.g.
-  `[2026-11-02T20:22:41-06:00] Christina`) to the copied message.
+- `--timestamp-header`: prepend a header line with each message's
+  original timestamp (e.g. `[02-11-26 20:22:41]`) to the copied message.
+  The author name is not repeated — the copy already posts under the
+  author's name.
 - `--timestamp-tz`: IANA timezone used for `--timestamp-header`
   (default `UTC`; use e.g. `America/Chicago` for local time).
 - A role mapping is saved to `.guildporter-role-mapping.json` for reference.

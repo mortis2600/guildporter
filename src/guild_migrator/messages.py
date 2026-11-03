@@ -8,8 +8,9 @@ never pings anyone.
 Honest limits (also documented in the README):
 - Discord stamps the *creation* time at post time; original timestamps
   cannot be preserved. Posting sequentially preserves order. The optional
-  ``timestamp_tz`` mode compensates by prepending an ISO 8601 header line
-  with the original timestamp and author name to each copied message.
+  ``timestamp_tz`` mode compensates by prepending a header line with the
+  original timestamp (``[DD-MM-YY HH:MM:SS]``, local time) to each copied
+  message.
 - Replies (message_reference) cannot be recreated cross-guild; they are
   posted as plain messages.
 - Reactions are dropped.
@@ -55,26 +56,28 @@ def author_name(message):
 
 
 def timestamp_header(message, tz_name="UTC"):
-    """ISO 8601 header line carrying the message's original time and author.
+    """Human-readable header line carrying the message's original time.
 
-    Example: ``[2026-11-02T20:22:41-06:00] Christina`` for tz
-    ``America/Chicago``. Returns None when the message has no timestamp.
+    Example: ``[02-11-26 20:22:41]`` for tz ``America/Chicago``
+    (DD-MM-YY, 24-hour clock). The author name is not repeated here —
+    the webhook already posts under the author's name. Returns None
+    when the message has no timestamp.
     """
     raw = message.get("timestamp")
     if not raw:
         return None
     moment = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
     local = moment.astimezone(ZoneInfo(tz_name))
-    return "[%s] %s" % (local.isoformat(timespec="seconds"), author_name(message))
+    return "[%s]" % local.strftime("%d-%m-%y %H:%M:%S")
 
 
 def build_payload(message, timestamp_tz=None):
     """Convert a Discord message object into a webhook execution payload.
 
     With ``timestamp_tz`` (an IANA timezone name), the returned content is
-    prefixed with an ISO 8601 header line showing the original timestamp
-    and author name, so the copy keeps its true date even though Discord
-    stamps the copy with the migration time.
+    prefixed with a header line showing the original timestamp
+    (``[DD-MM-YY HH:MM:SS]`` in that timezone), so the copy keeps its true
+    date even though Discord stamps the copy with the migration time.
     """
     author = message.get("author", {})
     username = author_name(message)
@@ -120,7 +123,7 @@ def migrate_channel(api, source_channel_id, webhook, checkpoint, on_progress=Non
     source channel IDs to the last migrated source message ID, enabling
     resume. ``min_interval`` overrides the default spacing between webhook
     posts (rate-limit safety). ``timestamp_tz`` (an IANA timezone name)
-    prepends an ISO 8601 original-timestamp header to each copied message.
+    prepends a [DD-MM-YY HH:MM:SS] original-timestamp header to each copied message.
     Returns (migrated_count, skipped_count).
     """
     from .api import WEBHOOK_POST_FLOOR_SECONDS

@@ -86,8 +86,8 @@ def main(argv=None):
     parser.add_argument(
         "--timestamp-header",
         action="store_true",
-        help="Prepend an ISO 8601 header with each message's original "
-        "timestamp and author name to the copied message",
+        help="Prepend a header line with each message's original "
+        "timestamp ([DD-MM-YY HH:MM:SS]) to the copied message",
     )
     parser.add_argument(
         "--timestamp-tz",
