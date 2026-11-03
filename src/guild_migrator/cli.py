@@ -3,6 +3,7 @@
 Usage:
     guild-migrate --config mapping.json [--token TOKEN] [--dry-run]
                   [--resume] [--cleanup-webhooks] [--skip-bot-role NAME]
+                  [--timestamp-header] [--timestamp-tz America/Chicago]
 
 The bot token can also come from the DISCORD_BOT_TOKEN environment variable.
 """
@@ -81,6 +82,17 @@ def main(argv=None):
         type=float,
         default=api.WEBHOOK_POST_FLOOR_SECONDS,
         help="Seconds between webhook posts (rate-limit safety, default %(default)s)",
+    )
+    parser.add_argument(
+        "--timestamp-header",
+        action="store_true",
+        help="Prepend an ISO 8601 header with each message's original "
+        "timestamp and author name to the copied message",
+    )
+    parser.add_argument(
+        "--timestamp-tz",
+        default="UTC",
+        help="IANA timezone for --timestamp-header (default %(default)s)",
     )
     parser.add_argument("--version", action="version", version="guildporter " + __version__)
     args = parser.parse_args(argv)
@@ -190,6 +202,7 @@ def main(argv=None):
         migrated, skipped = messages.migrate_channel(
             client, source_id, hook, checkpoint, on_progress=progress,
             min_interval=args.post_delay,
+            timestamp_tz=args.timestamp_tz if args.timestamp_header else None,
         )
         save_checkpoint(args.checkpoint, checkpoint)
         migrated_channels.append(target_id)

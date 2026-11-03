@@ -7,11 +7,16 @@ never pings anyone.
 
 Honest limits (also documented in the README):
 - Discord stamps the *creation* time at post time; original timestamps
-  cannot be preserved. Posting sequentially preserves order.
+  cannot be preserved. Posting sequentially preserves order. The optional
+  ``timestamp_tz`` mode compensates by prepending an ISO 8601 header line
+  with the original timestamp and author name to each copied message.
 - Replies (message_reference) cannot be recreated cross-guild; they are
   posted as plain messages.
 - Reactions are dropped.
 """
+
+import datetime
+from zoneinfo import ZoneInfo
 
 from . import webhooks
 
@@ -42,11 +47,37 @@ def split_content(content):
     return chunks
 
 
-def build_payload(message):
-    """Convert a Discord message object into a webhook execution payload."""
+def author_name(message):
+    """Display name for a message: member nick, else global name, else username."""
     author = message.get("author", {})
     member = message.get("member", {})
-    username = member.get("nick") or author.get("global_name") or author.get("username") or "Unknown"
+    return member.get("nick") or author.get("global_name") or author.get("username") or "Unknown"
+
+
+def timestamp_header(message, tz_name="UTC"):
+    """ISO 8601 header line carrying the message's original time and author.
+
+    Example: ``[2026-11-02T20:22:41-06:00] Christina`` for tz
+    ``America/Chicago``. Returns None when the message has no timestamp.
+    """
+    raw = message.get("timestamp")
+    if not raw:
+        return None
+    moment = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    local = moment.astimezone(ZoneInfo(tz_name))
+    return "[%s] %s" % (local.isoformat(timespec="seconds"), author_name(message))
+
+
+def build_payload(message, timestamp_tz=None):
+    """Convert a Discord message object into a webhook execution payload.
+
+    With ``timestamp_tz`` (an IANA timezone name), the returned content is
+    prefixed with an ISO 8601 header line showing the original timestamp
+    and author name, so the copy keeps its true date even though Discord
+    stamps the copy with the migration time.
+    """
+    author = message.get("author", {})
+    username = author_name(message)
     avatar_url = None
     avatar = author.get("avatar")
     if avatar and author.get("id"):
@@ -72,17 +103,25 @@ def build_payload(message):
         # Cross-guild reply references are invalid; the message posts standalone.
         pass
 
-    return payload, message.get("content") or ""
+    content = message.get("content") or ""
+    if timestamp_tz is not None:
+        header = timestamp_header(message, timestamp_tz)
+        if header:
+            content = header + "\n" + content if content else header
+
+    return payload, content
 
 
 def migrate_channel(api, source_channel_id, webhook, checkpoint, on_progress=None,
-                    min_interval=None):
+                    min_interval=None, timestamp_tz=None):
     """Migrate every message from a source channel through ``webhook``.
 
     ``checkpoint`` is a mutable dict persisted by the caller: it maps
     source channel IDs to the last migrated source message ID, enabling
     resume. ``min_interval`` overrides the default spacing between webhook
-    posts (rate-limit safety). Returns (migrated_count, skipped_count).
+    posts (rate-limit safety). ``timestamp_tz`` (an IANA timezone name)
+    prepends an ISO 8601 original-timestamp header to each copied message.
+    Returns (migrated_count, skipped_count).
     """
     from .api import WEBHOOK_POST_FLOOR_SECONDS
 
@@ -103,7 +142,7 @@ def migrate_channel(api, source_channel_id, webhook, checkpoint, on_progress=Non
             checkpoint[source_channel_id] = message["id"]
             continue
 
-        payload, content = build_payload(message)
+        payload, content = build_payload(message, timestamp_tz=timestamp_tz)
 
         # Re-upload attachments (skip ones that are too large to carry).
         files = []

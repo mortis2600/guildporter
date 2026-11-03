@@ -141,3 +141,64 @@ if __name__ == "__main__":
             print("FAIL %s: %s" % (test.__name__, exc))
     print("\n%d passed, %d failed" % (len(tests) - failed, failed))
     sys.exit(1 if failed else 0)
+
+
+def test_timestamp_header_utc():
+    from guild_migrator.messages import timestamp_header
+
+    message = {
+        "author": {"id": "3", "username": "khrysteenah"},
+        "timestamp": "2026-11-03T02:22:41.123456+00:00",
+        "content": "availability?",
+    }
+    assert timestamp_header(message, "UTC") == "[2026-11-03T02:22:41+00:00] khrysteenah"
+
+
+def test_timestamp_header_converts_timezone():
+    from guild_migrator.messages import timestamp_header
+
+    message = {
+        "author": {"id": "3", "username": "khrysteenah"},
+        "member": {"nick": "Christina"},
+        "timestamp": "2026-11-03T02:22:41+00:00",
+        "content": "availability?",
+    }
+    # November in Chicago is CST (UTC-6); nick wins over username.
+    assert timestamp_header(message, "America/Chicago") == "[2026-11-02T20:22:41-06:00] Christina"
+
+
+def test_timestamp_header_missing_timestamp():
+    from guild_migrator.messages import timestamp_header
+
+    assert timestamp_header({"author": {"username": "x"}}, "UTC") is None
+
+
+def test_build_payload_with_timestamp_header():
+    message = {
+        "author": {"id": "3", "username": "khrysteenah"},
+        "timestamp": "2026-11-03T02:22:41+00:00",
+        "content": "hello",
+    }
+    _, content = build_payload(message, timestamp_tz="UTC")
+    assert content == "[2026-11-03T02:22:41+00:00] khrysteenah\nhello"
+
+
+def test_build_payload_timestamp_header_on_empty_content():
+    message = {
+        "author": {"id": "3", "username": "khrysteenah"},
+        "timestamp": "2026-11-03T02:22:41+00:00",
+        "content": "",
+        "attachments": [{"filename": "weekly_schedule.png"}],
+    }
+    _, content = build_payload(message, timestamp_tz="UTC")
+    assert content == "[2026-11-03T02:22:41+00:00] khrysteenah"
+
+
+def test_build_payload_default_has_no_header():
+    message = {
+        "author": {"id": "3", "username": "khrysteenah"},
+        "timestamp": "2026-11-03T02:22:41+00:00",
+        "content": "hello",
+    }
+    _, content = build_payload(message)
+    assert content == "hello"

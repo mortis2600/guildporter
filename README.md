@@ -27,7 +27,9 @@ limits on any migration tool, and guildporter is honest about them:
 
 - **Timestamps are not preserved.** Discord stamps creation time when a
   message is posted. Messages are posted oldest-first, so order is correct,
-  but every message will show today's date.
+  but every message will show today's date. Mitigation: `--timestamp-header`
+  prepends an ISO 8601 header line with the original timestamp and author
+  name to each copied message, so the true date stays visible in the text.
 - **Replies can't be recreated.** Cross-guild reply references are invalid,
   so replies post as standalone messages.
 - **Reactions are dropped.** There is no API to re-apply someone else's
@@ -139,6 +141,7 @@ Discord's abuse detection helps nobody:
 guild-migrate --config mapping.json [--token TOKEN] [--vault] [--dry-run]
               [--checkpoint FILE] [--cleanup-webhooks]
               [--skip-bot-role NAME] [--post-delay SECONDS]
+              [--timestamp-header] [--timestamp-tz ZONE]
 ```
 
 - `--token` / `DISCORD_BOT_TOKEN`: raw bot token (the `Bot ` scheme prefix
@@ -152,6 +155,11 @@ guild-migrate --config mapping.json [--token TOKEN] [--vault] [--dry-run]
   messages since the last run.
 - `--skip-bot-role`: name of the bot's own auto-created role, excluded from
   role mirroring.
+- `--timestamp-header`: prepend an ISO 8601 header line with each message's
+  original timestamp and author name (e.g.
+  `[2026-11-02T20:22:41-06:00] Christina`) to the copied message.
+- `--timestamp-tz`: IANA timezone used for `--timestamp-header`
+  (default `UTC`; use e.g. `America/Chicago` for local time).
 - A role mapping is saved to `.guildporter-role-mapping.json` for reference.
 
 ## FAQ
